@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#125c27">
-<title>जय किसान बचत गट - Digital Accounting System</title>
+<title>जय किसान बचत गट - Real-Time Cloud Sync</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <!-- Firebase SDK via CDN -->
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
@@ -150,7 +150,7 @@ footer{font-size:11px;color:var(--muted);text-align:center;padding:20px 10px}
   <div class="top-bar">
     <div>
       <div class="brand-title">🌾 जय किसान पुरुष बचत गट</div>
-      <div class="brand-sub">पळसगाव / निलज • Real-Time Cloud Sync</div>
+      <div class="brand-sub">पळसगाव / निलज • <span id="syncStatus">🔄 Connecting Cloud...</span></div>
     </div>
     <div class="header-actions">
       <button class="btn light" onclick="window.print()"><i class="fas fa-print"></i> प्रिंट</button>
@@ -171,7 +171,7 @@ footer{font-size:11px;color:var(--muted);text-align:center;padding:20px 10px}
       <button class="btn red" style="padding:4px 10px;font-size:11px" onclick="logoutAdmin()">लॉगआउट</button>
     </div>
     <div class="admin-tools">
-      <button class="btn light" onclick="openFirebaseModal()" style="background:#e0f2fe;color:#0369a1;font-weight:800"><i class="fas fa-cloud"></i> ☁️ Firebase Cloud Sync</button>
+      <button class="btn light" onclick="testCloudSync()" style="background:#e0f2fe;color:#0369a1;font-weight:800"><i class="fas fa-sync"></i> Test Cloud Sync</button>
       <button class="btn light" onclick="openPinModal()"><i class="fas fa-key"></i> PIN बदला</button>
       <button class="btn light" onclick="exportJSONBackup()"><i class="fas fa-download"></i> बॅकअप फाईल</button>
       <button class="btn light" onclick="document.getElementById('importFile').click()"><i class="fas fa-upload"></i> रिस्टोर</button>
@@ -276,22 +276,6 @@ footer{font-size:11px;color:var(--muted);text-align:center;padding:20px 10px}
   </div>
 </div>
 
-<!-- Firebase Config Modal -->
-<div class="overlay" id="firebaseModal">
-  <div class="modal">
-    <h3><i class="fas fa-cloud"></i> Firebase Cloud Sync Setup</h3>
-    <p style="font-size:12px;color:var(--muted);margin-bottom:12px">सर्व मोबाईलवर लाईव्ह सिंक करण्यासाठी खाली Firebase Config JSON पेस्ट करा.</p>
-    <div class="field">
-      <label>Firebase Config JSON</label>
-      <textarea id="firebaseConfigInput" placeholder='{"apiKey": "...", "projectId": "...", "appId": "..."}' style="font-family:monospace;font-size:12px;min-height:110px"></textarea>
-    </div>
-    <div class="modal-actions">
-      <button class="btn ghost" onclick="closeModal('firebaseModal')">रद्द</button>
-      <button class="btn" onclick="saveFirebaseConfig()">कनेक्ट करा</button>
-    </div>
-  </div>
-</div>
-
 <!-- Change PIN Modal -->
 <div class="overlay" id="pinModal">
   <div class="modal">
@@ -337,7 +321,7 @@ footer{font-size:11px;color:var(--muted);text-align:center;padding:20px 10px}
   </div>
 </div>
 
-<!-- Financial Record Modal (एकूण जमा, व्याज, दंड, कर्ज, ठराव) -->
+<!-- Financial Record Modal -->
 <div class="overlay" id="savingModal">
   <div class="modal">
     <h3><i class="fas fa-rupee-sign"></i> सदस्याचा आर्थिक हिशोब अपडेट करा</h3>
@@ -445,23 +429,31 @@ let isAdminLoggedIn = false;
 let db = null;
 let isSyncingFromCloud = false;
 
-// Initialize Firebase if saved config exists
-const savedFirebaseConfig = localStorage.getItem('jai_kisan_firebase_config');
-if(savedFirebaseConfig) {
-  try {
-    const cfg = JSON.parse(savedFirebaseConfig);
-    if (!firebase.apps.length) {
-      firebase.initializeApp(cfg);
-    }
-    db = firebase.firestore();
-    initRealtimeSync();
-  } catch(e) {
-    console.error("Firebase init error:", e);
+// Pre-configured Firebase details from user
+const firebaseConfig = {
+  apiKey: "AIzaSyCKKA7Phcds9jjQs8raETUGzgQBp6RuZ9M",
+  authDomain: "jai-kisan-bachat-gat.firebaseapp.com",
+  projectId: "jai-kisan-bachat-gat",
+  storageBucket: "jai-kisan-bachat-gat.firebasestorage.app",
+  messagingSenderId: "171062911029",
+  appId: "1:171062911029:web:f61a46b79380c21ed5917c"
+};
+
+try {
+  if (!firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
   }
+  db = firebase.firestore();
+  initRealtimeSync();
+} catch(e) {
+  console.error("Firebase init error:", e);
+  document.getElementById('syncStatus').innerHTML = '🔴 Init Error';
 }
 
 function initRealtimeSync() {
   if(!db) return;
+  document.getElementById('syncStatus').innerHTML = '🟡 Connecting...';
+  
   db.collection("bachat_gat").doc("main_data").onSnapshot((doc) => {
     if(doc.exists) {
       const cloudData = doc.data();
@@ -471,10 +463,17 @@ function initRealtimeSync() {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(appState));
         renderAll();
         isSyncingFromCloud = false;
+        document.getElementById('syncStatus').innerHTML = '🟢 Live Synced';
       }
+    } else {
+      // If doc doesn't exist yet, push local state to cloud
+      document.getElementById('syncStatus').innerHTML = '🟢 Connected (Pushing Initial)';
+      saveAndRender();
     }
   }, (error) => {
     console.error("Cloud sync error:", error);
+    document.getElementById('syncStatus').innerHTML = '🔴 Sync Error: ' + error.code;
+    showToast("Cloud Error: " + error.message);
   });
 }
 
@@ -486,15 +485,39 @@ function saveAndRender() {
     db.collection("bachat_gat").doc("main_data").set({
       state: appState,
       updatedAt: new Date().toISOString()
-    }).catch(err => console.error("Cloud save error:", err));
+    }).then(() => {
+      document.getElementById('syncStatus').innerHTML = '🟢 Saved to Cloud';
+    }).catch(err => {
+      console.error("Cloud save error:", err);
+      document.getElementById('syncStatus').innerHTML = '🔴 Save Failed';
+      showToast("Cloud Save Error: " + err.message);
+    });
   }
 }
+
+window.testCloudSync = function() {
+  if(!db) {
+    showToast("Database not connected!");
+    return;
+  }
+  db.collection("bachat_gat").doc("main_data").set({
+    state: appState,
+    updatedAt: new Date().toISOString()
+  }).then(() => {
+    showToast("✅ Test Sync Successful! Check Firebase Console.");
+    document.getElementById('syncStatus').innerHTML = '🟢 Test Success';
+  }).catch(err => {
+    showToast("❌ Test Failed: " + err.message);
+    alert("Firebase Error Details:
+" + err.message);
+  });
+};
 
 function showToast(msg) {
   const t = document.getElementById('toast');
   t.textContent = msg;
   t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 2500);
+  setTimeout(() => t.classList.remove('show'), 3000);
 }
 
 window.openModal = function(id) { document.getElementById(id).classList.add('show'); };
@@ -565,31 +588,6 @@ function requireAdmin() {
   return true;
 }
 
-window.openFirebaseModal = function() {
-  if(!requireAdmin()) return;
-  const cfg = localStorage.getItem('jai_kisan_firebase_config') || '';
-  document.getElementById('firebaseConfigInput').value = cfg;
-  openModal('firebaseModal');
-};
-
-window.saveFirebaseConfig = function() {
-  const raw = document.getElementById('firebaseConfigInput').value.trim();
-  try {
-    const cfg = JSON.parse(raw);
-    if(!cfg.apiKey || !cfg.projectId) throw new Error();
-    localStorage.setItem('jai_kisan_firebase_config', JSON.stringify(cfg));
-    if (!firebase.apps.length) {
-      firebase.initializeApp(cfg);
-    }
-    db = firebase.firestore();
-    initRealtimeSync();
-    closeModal('firebaseModal');
-    showToast('Firebase connected & Real-time sync active!');
-  } catch(e) {
-    showToast('Invalid Firebase JSON config format!');
-  }
-};
-
 window.openPinModal = function() {
   if(!requireAdmin()) return;
   document.getElementById('newPinInput').value = '';
@@ -633,7 +631,7 @@ window.openMemberModal = function(memberId) {
   document.getElementById('mName').value = '';
   document.getElementById('mPhone').value = '';
   document.getElementById('mRole').value = 'सदस्य';
-  document.getElementById('memberModalTitle').innerHTML = '<i class="fas fa-user-plus"></i> नवीन सदस्य جوडा';
+  document.getElementById('memberModalTitle').innerHTML = '<i class="fas fa-user-plus"></i> नवीन सदस्य जोडा';
 
   if(memberId) {
     const m = appState.members.find(x => x.id === memberId);
@@ -690,7 +688,7 @@ window.deleteMember = function(id) {
 window.openSavingModal = function() {
   if(!requireAdmin()) return;
   if(appState.members.length === 0) {
-    showToast('आधी सदस्य جوडा.');
+    showToast('आधी सदस्य जोडा.');
     return;
   }
   const opts = appState.members.map(m => `<option value="${m.id}">${escapeHtml(m.name)} (${escapeHtml(m.role)})</option>`).join('');
@@ -859,7 +857,7 @@ function renderMemberList(containerId) {
       <div class="fin-box">
         <div class="fin-item"><span>एकूण जमा:</span> <strong>${formatMoney(m.jama)}</strong></div>
         <div class="fin-item"><span>जमा व्याज:</span> <strong>${formatMoney(m.interest)}</strong></div>
-        <div class="fin-item"><span>जمان दंड:</span> <strong style="color:var(--red)">${formatMoney(m.fine)}</strong></div>
+        <div class="fin-item"><span>जमा दंड:</span> <strong style="color:var(--red)">${formatMoney(m.fine)}</strong></div>
         <div class="fin-item"><span>सक्रिय कर्ज:</span> <strong style="color:var(--orange)">${formatMoney(m.loan)}</strong></div>
         <div class="fin-item" style="grid-column: span 2;border-top:1px solid var(--line);padding-top:4px;margin-top:2px">
           <span>ठराव:</span> <span>${escapeHtml(m.resolution)}</span>
