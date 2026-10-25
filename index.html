@@ -1,0 +1,903 @@
+<!doctype html>
+<html lang="mr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#125c27">
+<title>जय किसान बचत गट - Digital Accounting System</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<!-- Firebase SDK via CDN -->
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+<style>
+:root{
+  --green:#125c27;
+  --green-dark:#0c3d1a;
+  --green-light:#eaf5ec;
+  --emerald:#198754;
+  --orange:#e87918;
+  --orange-light:#fff5eb;
+  --blue:#0d6efd;
+  --blue-light:#e7f1ff;
+  --red:#dc3545;
+  --red-light:#f8d7da;
+  --ink:#212529;
+  --muted:#6c757d;
+  --line:#dee2e6;
+  --bg:#f8f9fa;
+  --white:#ffffff;
+  --shadow:0 4px 20px rgba(18,92,39,0.08);
+  --radius:14px;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-tap-highlight-color:transparent}
+button,input,select,textarea{font:inherit}button{cursor:pointer}
+.app{max-width:960px;margin:auto;min-height:100vh;padding-bottom:90px;background:var(--bg);position:relative}
+
+/* Header */
+header{background:linear-gradient(135deg,var(--green-dark),var(--green));color:#fff;padding:16px 20px;position:sticky;top:0;z-index:10;box-shadow:0 4px 20px rgba(0,0,0,0.15)}
+.top-bar{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.brand-title{font-size:17px;font-weight:800;letter-spacing:0.3px}
+.brand-sub{font-size:11px;opacity:0.85;margin-top:2px}
+.header-actions{display:flex;gap:8px;align-items:center}
+.mode-row{display:flex;justify-content:space-between;align-items:center;border-top:1px solid rgba(255,255,255,0.15);margin-top:12px;padding-top:10px;font-size:12px}
+.mode-pill{background:rgba(255,255,255,0.2);padding:4px 12px;border-radius:20px;font-weight:700;display:flex;align-items:center;gap:6px}
+
+/* Main Content */
+main{padding:16px}
+.admin-banner{background:var(--green-light);border:1px solid #bbf7d0;color:var(--green-dark);padding:12px 16px;border-radius:var(--radius);margin-bottom:14px;font-size:13px;box-shadow:var(--shadow)}
+.admin-tools{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+
+/* Hero & Stats */
+.hero{background:linear-gradient(135deg,#125c27,#1f8a3e);color:#fff;padding:22px;border-radius:var(--radius);margin-bottom:16px;box-shadow:0 8px 25px rgba(18,92,39,0.2)}
+.hero-label{font-size:12px;opacity:0.9;text-transform:uppercase;letter-spacing:0.5px}
+.hero-amount{font-size:36px;font-weight:900;margin:6px 0 14px;letter-spacing:-0.5px}
+.hero-meta{display:flex;justify-content:space-between;background:rgba(0,0,0,0.15);padding:10px 14px;border-radius:10px;font-size:12px}
+
+.stats-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:18px}
+.stat-card{background:var(--white);padding:16px;border-radius:var(--radius);box-shadow:var(--shadow);border-left:5px solid var(--green);position:relative;overflow:hidden}
+.stat-card:nth-child(2){border-color:var(--orange)}
+.stat-card:nth-child(3){border-color:var(--blue)}
+.stat-card:nth-child(4){border-color:#8b5cf6}
+.stat-card label{font-size:11px;color:var(--muted);text-transform:uppercase;font-weight:700}
+.stat-card strong{font-size:20px;font-weight:800;display:block;margin-top:6px;color:var(--ink)}
+
+/* Action Buttons Grid */
+.actions-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:20px}
+.action-btn{background:var(--white);border:1px solid var(--line);border-radius:var(--radius);padding:14px 10px;text-align:center;font-weight:700;font-size:13px;color:var(--green);box-shadow:0 2px 8px rgba(0,0,0,0.03);display:flex;flex-direction:column;align-items:center;gap:6px;transition:all 0.2s}
+.action-btn:hover{background:var(--green-light);border-color:#bbf7d0;transform:translateY(-2px)}
+.action-btn i{font-size:20px}
+
+/* Section Headings & Filters */
+.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.section-header h2{font-size:16px;font-weight:800;margin:0;color:var(--green-dark);display:flex;align-items:center;gap:8px}
+.search-box{position:relative;margin-bottom:14px}
+.search-box input{width:100%;padding:10px 14px 10px 38px;border:1px solid var(--line);border-radius:10px;background:var(--white);font-size:13px}
+.search-box i{position:absolute;left:13px;top:50%;transform:translateY(-50%);color:var(--muted)}
+
+/* Lists & Cards */
+.card-item{background:var(--white);border-radius:var(--radius);padding:14px 16px;margin-bottom:10px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:8px;border:1px solid rgba(0,0,0,0.03)}
+.card-top{display:flex;justify-content:space-between;align-items:flex-start}
+.card-title{font-weight:800;font-size:14px;color:var(--ink)}
+.card-subtitle{font-size:11px;color:var(--muted);margin-top:2px}
+.fin-box{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;background:var(--bg);padding:10px;border-radius:8px;font-size:12px}
+.fin-item{display:flex;justify-content:space-between}
+
+/* Buttons & Badges */
+.btn{border:0;border-radius:9px;background:var(--green);color:white;padding:8px 14px;font-weight:700;font-size:12px;display:inline-flex;align-items:center;gap:6px;transition:all 0.2s}
+.btn:hover{filter:brightness(1.1)}
+.btn.light{background:var(--green-light);color:var(--green)}
+.btn.ghost{background:var(--white);color:var(--ink);border:1px solid var(--line)}
+.btn.red{background:var(--red-light);color:var(--red)}
+.btn.blue{background:var(--blue-light);color:var(--blue)}
+.btn.orange{background:var(--orange-light);color:var(--orange)}
+
+.badge{font-size:10px;padding:3px 8px;border-radius:6px;font-weight:700;display:inline-block}
+.badge.green{background:var(--green-light);color:var(--green)}
+.badge.orange{background:var(--orange-light);color:var(--orange)}
+.badge.blue{background:var(--blue-light);color:var(--blue)}
+.badge.red{background:var(--red-light);color:var(--red)}
+
+.tools{display:flex;gap:5px;justify-content:flex-end;margin-top:6px;flex-wrap:wrap}
+
+/* Pages */
+.page{display:none}.page.active{display:block}
+.empty-state{text-align:center;color:var(--muted);padding:35px 20px;background:var(--white);border:2px dashed var(--line);border-radius:var(--radius);font-size:13px}
+
+/* Bottom Navigation Bar */
+.bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:min(100%,960px);display:flex;background:var(--white);border-top:1px solid var(--line);padding:6px 4px max(8px,env(safe-area-inset-bottom));z-index:9;box-shadow:0 -4px 20px rgba(0,0,0,0.06)}
+.nav-item{flex:1;border:0;background:none;color:var(--muted);font-size:10px;font-weight:700;display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 0;transition:color 0.2s}
+.nav-item i{font-size:18px}
+.nav-item.active{color:var(--green)}
+
+/* Modals & Overlays */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,0.6);backdrop-filter:blur(3px);z-index:50;display:none;align-items:center;justify-content:center;padding:16px}
+.overlay.show{display:flex}
+.modal{width:min(100%,480px);max-height:90vh;overflow-y:auto;background:var(--white);border-radius:20px;padding:22px;box-shadow:0 20px 40px rgba(0,0,0,0.2)}
+.modal h3{margin:0 0 16px;color:var(--green-dark);font-size:18px;display:flex;align-items:center;gap:8px}
+.field{margin-bottom:12px}
+.field label{display:block;font-size:12px;color:var(--muted);font-weight:700;margin-bottom:5px}
+.field input,.field select,.field textarea{width:100%;border:1px solid var(--line);border-radius:10px;padding:11px 14px;background:var(--white);color:var(--ink);font-size:14px}
+.field textarea{min-height:80px;resize:vertical}
+.modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:18px}
+
+#toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(50px);background:#212529;color:#fff;padding:10px 20px;border-radius:30px;font-size:13px;font-weight:600;z-index:100;opacity:0;transition:all 0.3s;pointer-events:none;box-shadow:0 5px 15px rgba(0,0,0,0.3)}
+#toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+
+.admin-only{display:none}
+.is-admin .admin-only{display:initial}
+.is-admin .admin-flex{display:flex}
+.hidden{display:none!important}
+footer{font-size:11px;color:var(--muted);text-align:center;padding:20px 10px}
+
+@media(min-width:650px){
+  main{padding:24px}
+  .stats-grid{grid-template-columns:repeat(4,1fr)}
+  .actions-grid{grid-template-columns:repeat(4,1fr)}
+}
+@media print{
+  header,.bottom-nav,.actions-grid,.admin-tools,.tools,#toast,.overlay{display:none!important}
+  .app{max-width:100%!important;padding:0!important}
+  body{background:#fff!important}
+  .card-item,.hero,.stat-card{box-shadow:none!important;border:1px solid #ddd!important}
+}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+
+<header>
+  <div class="top-bar">
+    <div>
+      <div class="brand-title">🌾 जय किसान पुरुष बचत गट</div>
+      <div class="brand-sub">पळसगाव / निलज • Real-Time Cloud Sync</div>
+    </div>
+    <div class="header-actions">
+      <button class="btn light" onclick="window.print()"><i class="fas fa-print"></i> प्रिंट</button>
+      <button class="btn light" onclick="shareGroupReport()"><i class="fas fa-share-alt"></i> शेअर</button>
+    </div>
+  </div>
+  <div class="mode-row">
+    <span class="mode-pill" id="modeIndicator"><i class="fas fa-eye"></i> Member Mode (फक्त पाहण्यासाठी)</span>
+    <button class="btn light" id="loginToggleBtn" onclick="toggleAdminLogin()"><i class="fas fa-lock"></i> Admin Login (ॲडमिन)</button>
+  </div>
+</header>
+
+<main>
+  <!-- Admin Panel Bar -->
+  <div class="admin-banner admin-only">
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <span><i class="fas fa-user-shield"></i> <b>Admin Control Panel Active (ॲडमिन मोड चालू आहे)</b></span>
+      <button class="btn red" style="padding:4px 10px;font-size:11px" onclick="logoutAdmin()">लॉगआउट</button>
+    </div>
+    <div class="admin-tools">
+      <button class="btn light" onclick="openFirebaseModal()" style="background:#e0f2fe;color:#0369a1;font-weight:800"><i class="fas fa-cloud"></i> ☁️ Firebase Cloud Sync</button>
+      <button class="btn light" onclick="openPinModal()"><i class="fas fa-key"></i> PIN बदला</button>
+      <button class="btn light" onclick="exportJSONBackup()"><i class="fas fa-download"></i> बॅकअप फाईल</button>
+      <button class="btn light" onclick="document.getElementById('importFile').click()"><i class="fas fa-upload"></i> रिस्टोर</button>
+      <button class="btn light" onclick="exportCSVReport()"><i class="fas fa-file-csv"></i> CSV रिपोर्ट</button>
+      <button class="btn red" onclick="openClearModal()"><i class="fas fa-trash-alt"></i> डेटा पुसा</button>
+      <input type="file" id="importFile" accept="application/json" hidden onchange="importJSONBackup(event)">
+    </div>
+  </div>
+
+  <!-- DASHBOARD PAGE -->
+  <section class="page active" id="page-dashboard">
+    <div class="hero">
+      <div class="hero-label">गटाकडे उपलब्ध शिल्लक निधी (Net Cash Balance)</div>
+      <div class="hero-amount" id="statBalance">₹ 0</div>
+      <div class="hero-meta">
+        <span>एकूण सदस्य: <b id="statMemberCount">0</b></span>
+        <span>मासिक बचत: <b>₹ २००</b></span>
+      </div>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-card">
+        <label>एकूण जमा बचत</label>
+        <strong id="statSavings">₹ 0</strong>
+      </div>
+      <div class="stat-card">
+        <label>सक्रिय कर्ज</label>
+        <strong id="statLoans">₹ 0</strong>
+      </div>
+      <div class="stat-card">
+        <label>जमा व्याज</label>
+        <strong id="statInterest">₹ 0</strong>
+      </div>
+      <div class="stat-card">
+        <label>जमा दंड</label>
+        <strong id="statFine">₹ 0</strong>
+      </div>
+    </div>
+
+    <div class="actions-grid admin-only">
+      <button class="action-btn" onclick="openMemberModal()"><i class="fas fa-user-plus" style="color:var(--green)"></i>नवीन सदस्य जोडा</button>
+      <button class="action-btn" onclick="openSavingModal()"><i class="fas fa-rupee-sign" style="color:var(--emerald)"></i>हिशोब अपडेट करा</button>
+      <button class="action-btn" onclick="openMeetingModal()"><i class="fas fa-clipboard-list" style="color:var(--blue)"></i>बैठक व ठराव</button>
+    </div>
+
+    <div class="section-header">
+      <h2><i class="fas fa-users"></i> सर्व सदस्यांची यादी व हिशोब</h2>
+    </div>
+    <div id="dashboardMemberList"></div>
+  </section>
+
+  <!-- MEMBERS PAGE -->
+  <section class="page" id="page-members">
+    <div class="section-header">
+      <h2><i class="fas fa-users"></i> सदस्य यादी व हिशोब व्यवस्थापन</h2>
+      <button class="btn admin-only" onclick="openMemberModal()"><i class="fas fa-plus"></i> सदस्य जोडा</button>
+    </div>
+    <div class="search-box">
+      <i class="fas fa-search"></i>
+      <input type="text" id="memberSearch" placeholder="सदस्याचे नाव किंवा मोबाईल नंबर शोधा..." oninput="renderMembers()">
+    </div>
+    <div id="membersContainer"></div>
+  </section>
+
+  <!-- MEETINGS PAGE -->
+  <section class="page" id="page-meetings">
+    <div class="section-header">
+      <h2><i class="fas fa-book"></i> बैठक व ठराव रजिस्टर</h2>
+      <button class="btn admin-only" onclick="openMeetingModal()"><i class="fas fa-plus"></i> ठराव जोडा</button>
+    </div>
+    <div id="meetingsContainer"></div>
+  </section>
+
+  <footer>
+    जय किसान स्वयं सहाय्यता पुरुष बचत गट, पळसगाव / निलज © 2026<br>सर्व हिशोब सुरक्षित आणि पारदर्शक.
+  </footer>
+</main>
+
+<!-- Bottom Navigation Bar -->
+<nav class="bottom-nav">
+  <button class="nav-item active" onclick="switchTab('dashboard',this)"><i class="fas fa-chart-pie"><span>डॅशबोर्ड</span></i></button>
+  <button class="nav-item" onclick="switchTab('members',this)"><i class="fas fa-users"><span>सदस्य</span></i></button>
+  <button class="nav-item" onclick="switchTab('meetings',this)"><i class="fas fa-book"><span>ठराव</span></i></button>
+</nav>
+
+</div>
+
+<!-- MODALS -->
+
+<!-- Login Modal -->
+<div class="overlay" id="loginModal">
+  <div class="modal">
+    <h3><i class="fas fa-lock"></i> ॲडमिन सुरक्षित लॉगिन</h3>
+    <div class="field">
+      <label>सुरक्षा PIN (Default: 1234)</label>
+      <input type="password" id="loginPinInput" inputmode="numeric" placeholder="4 अंकी PIN टाका">
+    </div>
+    <div class="modal-actions">
+      <button class="btn ghost" onclick="closeModal('loginModal')">रद्द करा</button>
+      <button class="btn" onclick="verifyAdminLogin()">अनलॉक करा</button>
+    </div>
+  </div>
+</div>
+
+<!-- Firebase Config Modal -->
+<div class="overlay" id="firebaseModal">
+  <div class="modal">
+    <h3><i class="fas fa-cloud"></i> Firebase Cloud Sync Setup</h3>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:12px">सर्व मोबाईलवर लाईव्ह सिंक करण्यासाठी खाली Firebase Config JSON पेस्ट करा.</p>
+    <div class="field">
+      <label>Firebase Config JSON</label>
+      <textarea id="firebaseConfigInput" placeholder='{"apiKey": "...", "projectId": "...", "appId": "..."}' style="font-family:monospace;font-size:12px;min-height:110px"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn ghost" onclick="closeModal('firebaseModal')">रद्द</button>
+      <button class="btn" onclick="saveFirebaseConfig()">कनेक्ट करा</button>
+    </div>
+  </div>
+</div>
+
+<!-- Change PIN Modal -->
+<div class="overlay" id="pinModal">
+  <div class="modal">
+    <h3><i class="fas fa-key"></i> ॲडमिन PIN बदला</h3>
+    <div class="field">
+      <label>नवीन PIN (किमान ४ अंक)</label>
+      <input type="password" id="newPinInput" inputmode="numeric" placeholder="नवीन PIN">
+    </div>
+    <div class="modal-actions">
+      <button class="btn ghost" onclick="closeModal('pinModal')">रद्द</button>
+      <button class="btn" onclick="saveNewPin()">सेव्ह करा</button>
+    </div>
+  </div>
+</div>
+
+<!-- Member Modal -->
+<div class="overlay" id="memberModal">
+  <div class="modal">
+    <h3 id="memberModalTitle"><i class="fas fa-user-plus"></i> सदस्य जोडा</h3>
+    <input type="hidden" id="editMemberId">
+    <div class="field">
+      <label>पूर्ण नाव</label>
+      <input type="text" id="mName" placeholder="सदस्याचे नाव">
+    </div>
+    <div class="field">
+      <label>मोबाईल नंबर</label>
+      <input type="tel" id="mPhone" inputmode="numeric" placeholder="10 अंकी मोबाईल नंबर">
+    </div>
+    <div class="field">
+      <label>गटातील पद</label>
+      <select id="mRole">
+        <option>सदस्य</option>
+        <option>अध्यक्ष</option>
+        <option>उपाध्यक्ष</option>
+        <option>सचिव</option>
+        <option>खजिनदार</option>
+      </select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn ghost" onclick="closeModal('memberModal')">रद्द</button>
+      <button class="btn" onclick="saveMemberData()">सेव्ह करा</button>
+    </div>
+  </div>
+</div>
+
+<!-- Financial Record Modal (एकूण जमा, व्याज, दंड, कर्ज, ठराव) -->
+<div class="overlay" id="savingModal">
+  <div class="modal">
+    <h3><i class="fas fa-rupee-sign"></i> सदस्याचा आर्थिक हिशोब अपडेट करा</h3>
+    <div class="field">
+      <label>सदस्य निवडा</label>
+      <select id="sMemberSelect"></select>
+    </div>
+    <div class="field">
+      <label>एकूण जमा बचत (₹)</label>
+      <input type="number" id="sJama" value="0" min="0">
+    </div>
+    <div class="field">
+      <label>जमा व्याज (₹)</label>
+      <input type="number" id="sInterest" value="0" min="0">
+    </div>
+    <div class="field">
+      <label>जमा दंड (₹)</label>
+      <input type="number" id="sFine" value="0" min="0">
+    </div>
+    <div class="field">
+      <label>सक्रिय कर्ज (₹)</label>
+      <input type="number" id="sLoan" value="0" min="0">
+    </div>
+    <div class="field">
+      <label>ठराव क्रमांक व तपशील</label>
+      <input type="text" id="sResolution" placeholder="उदा. ठराव क्र. १२ / किंवा रिक्त ठेवा">
+    </div>
+    <div class="modal-actions">
+      <button class="btn ghost" onclick="closeModal('savingModal')">रद्द</button>
+      <button class="btn" onclick="saveFinancialData()">हिशोब सेव्ह करा</button>
+    </div>
+  </div>
+</div>
+
+<!-- Meeting Modal -->
+<div class="overlay" id="meetingModal">
+  <div class="modal">
+    <h3><i class="fas fa-clipboard-list"></i> बैठक व ठराव नोंद</h3>
+    <div class="field">
+      <label>बैठक दिनांक</label>
+      <input type="date" id="meetDateInput">
+    </div>
+    <div class="field">
+      <label>ठराव क्रमांक</label>
+      <input type="text" id="meetNoInput" placeholder="उदा. ठराव क्र. १५">
+    </div>
+    <div class="field">
+      <label>उपस्थित सदस्य संख्या</label>
+      <input type="number" id="meetPresentInput" value="12" min="0">
+    </div>
+    <div class="field">
+      <label>ठरावाचा विषय व तपशील</label>
+      <textarea id="meetNotesInput" placeholder="बैठकीतील ठराव व चर्चेचा तपशील लिहा"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn ghost" onclick="closeModal('meetingModal')">रद्द</button>
+      <button class="btn" onclick="saveMeetingData()">ठराव सेव्ह करा</button>
+    </div>
+  </div>
+</div>
+
+<!-- Clear Data Confirmation Modal -->
+<div class="overlay" id="clearModal">
+  <div class="modal">
+    <h3 style="color:var(--red)"><i class="fas fa-exclamation-triangle"></i> सर्व डेटा पुसायचा?</h3>
+    <p style="font-size:13px;color:var(--muted)">ही क्रिया पूर्ववत करता येणार नाही. सर्व सदस्य आणि हिशोब नोंदी हटवल्या जातील.</p>
+    <div class="modal-actions">
+      <button class="btn ghost" onclick="closeModal('clearModal')">नाही</button>
+      <button class="btn red" onclick="confirmClearData()">होय, सर्व पुसा</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast">सूचना</div>
+
+<script>
+const STORAGE_KEY = 'jai_kisan_master_stable_v1';
+const defaultInitialState = {
+  pin: '1234',
+  members: [
+    {id:1, name:'दिनेश मटाले', phone:'7798985534', role:'अध्यक्ष', jama:0, interest:0, fine:0, loan:0, resolution:'-'},
+    {id:2, name:'हिरामण शिवणकर', phone:'7498376259', role:'उपाध्यक्ष', jama:0, interest:0, fine:0, loan:0, resolution:'-'},
+    {id:3, name:'भुपेश बहेकार', phone:'7775844253', role:'सचिव', jama:0, interest:0, fine:0, loan:0, resolution:'-'},
+    {id:4, name:'मनिष कोरे', phone:'9021911261', role:'सदस्य', jama:0, interest:0, fine:0, loan:0, resolution:'-'},
+    {id:5, name:'राहुल लेदे', phone:'8412946005', role:'सदस्य', jama:0, interest:0, fine:0, loan:0, resolution:'-'},
+    {id:6, name:'तारकेश हेमणे', phone:'9325524520', role:'सदस्य', jama:0, interest:0, fine:0, loan:0, resolution:'-'},
+    {id:7, name:'सतीश बारसागडे', phone:'9623999654', role:'सदस्य', jama:0, interest:0, fine:0, loan:0, resolution:'-'},
+    {id:8, name:'टिकेश बहेकार', phone:'9403422356', role:'सदस्य', jama:0, interest:0, fine:0, loan:0, resolution:'-'},
+    {id:9, name:'तुषार कोरे', phone:'9307957844', role:'सदस्य', jama:0, interest:0, fine:0, loan:0, resolution:'-'},
+    {id:10, name:'अजय कोरे', phone:'7796154519', role:'सदस्य', jama:0, interest:0, fine:0, loan:0, resolution:'-'},
+    {id:11, name:'महेश शिवणकर', phone:'8379821701', role:'सदस्य', jama:0, interest:0, fine:0, loan:0, resolution:'-'},
+    {id:12, name:'काशिनाथ भराडे', phone:'9021108305', role:'सदस्य', jama:0, interest:0, fine:0, loan:0, resolution:'-'}
+  ],
+  meetings: []
+};
+
+let appState;
+try {
+  appState = JSON.parse(localStorage.getItem(STORAGE_KEY)) || structuredClone(defaultInitialState);
+} catch(e) {
+  appState = structuredClone(defaultInitialState);
+}
+
+let isAdminLoggedIn = false;
+let db = null;
+let isSyncingFromCloud = false;
+
+// Initialize Firebase if saved config exists
+const savedFirebaseConfig = localStorage.getItem('jai_kisan_firebase_config');
+if(savedFirebaseConfig) {
+  try {
+    const cfg = JSON.parse(savedFirebaseConfig);
+    if (!firebase.apps.length) {
+      firebase.initializeApp(cfg);
+    }
+    db = firebase.firestore();
+    initRealtimeSync();
+  } catch(e) {
+    console.error("Firebase init error:", e);
+  }
+}
+
+function initRealtimeSync() {
+  if(!db) return;
+  db.collection("bachat_gat").doc("main_data").onSnapshot((doc) => {
+    if(doc.exists) {
+      const cloudData = doc.data();
+      if(cloudData && cloudData.state) {
+        isSyncingFromCloud = true;
+        appState = cloudData.state;
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(appState));
+        renderAll();
+        isSyncingFromCloud = false;
+      }
+    }
+  }, (error) => {
+    console.error("Cloud sync error:", error);
+  });
+}
+
+function saveAndRender() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(appState));
+  renderAll();
+  
+  if(db && !isSyncingFromCloud) {
+    db.collection("bachat_gat").doc("main_data").set({
+      state: appState,
+      updatedAt: new Date().toISOString()
+    }).catch(err => console.error("Cloud save error:", err));
+  }
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+window.openModal = function(id) { document.getElementById(id).classList.add('show'); };
+window.closeModal = function(id) { document.getElementById(id).classList.remove('show'); };
+
+window.switchTab = function(tabId, btnEl) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + tabId).classList.add('active');
+  document.querySelectorAll('.bottom-nav .nav-item').forEach(n => n.classList.remove('active'));
+  if(btnEl) btnEl.classList.add('active');
+  else {
+    const map = {'dashboard':0, 'members':1, 'meetings':2};
+    const idx = map[tabId];
+    if(idx !== undefined) document.querySelectorAll('.bottom-nav .nav-item')[idx].classList.add('active');
+  }
+  window.scrollTo({top:0, behavior:'smooth'});
+};
+
+function formatMoney(n) {
+  return '₹ ' + Number(n || 0).toLocaleString('en-IN');
+}
+
+function escapeHtml(str) {
+  return String(str || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+/* Admin Login */
+window.toggleAdminLogin = function() {
+  if(isAdminLoggedIn) {
+    logoutAdmin();
+  } else {
+    document.getElementById('loginPinInput').value = '';
+    openModal('loginModal');
+  }
+};
+
+window.verifyAdminLogin = function() {
+  const pin = document.getElementById('loginPinInput').value.trim();
+  if(pin === String(appState.pin || '1234')) {
+    isAdminLoggedIn = true;
+    closeModal('loginModal');
+    updateAdminUI();
+    showToast('ॲडमिन लॉगिन यशस्वी!');
+  } else {
+    showToast('चुकीचा PIN!');
+  }
+};
+
+window.logoutAdmin = function() {
+  isAdminLoggedIn = false;
+  updateAdminUI();
+  showToast('ॲडमिन लॉगआउट झाले.');
+};
+
+function updateAdminUI() {
+  document.getElementById('app').classList.toggle('is-admin', isAdminLoggedIn);
+  document.getElementById('modeIndicator').innerHTML = isAdminLoggedIn ? '<i class="fas fa-unlock"></i> Admin Mode (पूर्ण प्रवेश)' : '<i class="fas fa-eye"></i> Member Mode (फक्त पाहण्यासाठी)';
+  document.getElementById('loginToggleBtn').innerHTML = isAdminLoggedIn ? '<i class="fas fa-sign-out-alt"></i> लॉगआउट' : '<i class="fas fa-lock"></i> Admin Login (ॲडमिन)';
+  renderAll();
+}
+
+function requireAdmin() {
+  if(!isAdminLoggedIn) {
+    showToast('आधी ॲडमिन लॉगिन करा!');
+    openModal('loginModal');
+    return false;
+  }
+  return true;
+}
+
+window.openFirebaseModal = function() {
+  if(!requireAdmin()) return;
+  const cfg = localStorage.getItem('jai_kisan_firebase_config') || '';
+  document.getElementById('firebaseConfigInput').value = cfg;
+  openModal('firebaseModal');
+};
+
+window.saveFirebaseConfig = function() {
+  const raw = document.getElementById('firebaseConfigInput').value.trim();
+  try {
+    const cfg = JSON.parse(raw);
+    if(!cfg.apiKey || !cfg.projectId) throw new Error();
+    localStorage.setItem('jai_kisan_firebase_config', JSON.stringify(cfg));
+    if (!firebase.apps.length) {
+      firebase.initializeApp(cfg);
+    }
+    db = firebase.firestore();
+    initRealtimeSync();
+    closeModal('firebaseModal');
+    showToast('Firebase connected & Real-time sync active!');
+  } catch(e) {
+    showToast('Invalid Firebase JSON config format!');
+  }
+};
+
+window.openPinModal = function() {
+  if(!requireAdmin()) return;
+  document.getElementById('newPinInput').value = '';
+  openModal('pinModal');
+};
+
+window.saveNewPin = function() {
+  const np = document.getElementById('newPinInput').value.trim();
+  if(!np || np.length < 4) {
+    showToast('किमान ४ अंकी PIN प्रविष्ट करा.');
+    return;
+  }
+  appState.pin = np;
+  saveAndRender();
+  closeModal('pinModal');
+  showToast('PIN बदलला.');
+};
+
+/* Financial Calculations */
+function calculateTotals() {
+  let totalSavings = 0;
+  let totalInterest = 0;
+  let totalFine = 0;
+  let activeLoans = 0;
+
+  appState.members.forEach(m => {
+    totalSavings += Number(m.jama || 0);
+    totalInterest += Number(m.interest || 0);
+    totalFine += Number(m.fine || 0);
+    activeLoans += Number(m.loan || 0);
+  });
+
+  const netBalance = totalSavings + totalInterest + totalFine - activeLoans;
+  return { totalSavings, totalInterest, totalFine, activeLoans, netBalance };
+}
+
+/* Members Management */
+window.openMemberModal = function(memberId) {
+  if(!requireAdmin()) return;
+  document.getElementById('editMemberId').value = '';
+  document.getElementById('mName').value = '';
+  document.getElementById('mPhone').value = '';
+  document.getElementById('mRole').value = 'सदस्य';
+  document.getElementById('memberModalTitle').innerHTML = '<i class="fas fa-user-plus"></i> नवीन सदस्य جوडा';
+
+  if(memberId) {
+    const m = appState.members.find(x => x.id === memberId);
+    if(m) {
+      document.getElementById('editMemberId').value = m.id;
+      document.getElementById('mName').value = m.name;
+      document.getElementById('mPhone').value = m.phone || '';
+      document.getElementById('mRole').value = m.role;
+      document.getElementById('memberModalTitle').innerHTML = '<i class="fas fa-user-edit"></i> सदस्य माहिती बदला';
+    }
+  }
+  openModal('memberModal');
+};
+
+window.saveMemberData = function() {
+  if(!requireAdmin()) return;
+  const name = document.getElementById('mName').value.trim();
+  const phone = document.getElementById('mPhone').value.trim();
+  const role = document.getElementById('mRole').value;
+  const editId = Number(document.getElementById('editMemberId').value);
+
+  if(!name) {
+    showToast('सदस्याचे नाव प्रविष्ट करा.');
+    return;
+  }
+
+  if(editId) {
+    const m = appState.members.find(x => x.id === editId);
+    if(m) {
+      m.name = name;
+      m.phone = phone;
+      m.role = role;
+      showToast('सदस्य माहिती अपडेट झाली.');
+    }
+  } else {
+    appState.members.push({ id: Date.now(), name, phone, role, jama:0, interest:0, fine:0, loan:0, resolution:'-' });
+    showToast('नवीन सदस्य जोडला.');
+  }
+
+  saveAndRender();
+  closeModal('memberModal');
+};
+
+window.deleteMember = function(id) {
+  if(!requireAdmin()) return;
+  if(confirm('हा सदस्य हटवायचा का?')) {
+    appState.members = appState.members.filter(m => m.id !== id);
+    saveAndRender();
+    showToast('सदस्य हटवला.');
+  }
+};
+
+/* Financial Record Update */
+window.openSavingModal = function() {
+  if(!requireAdmin()) return;
+  if(appState.members.length === 0) {
+    showToast('आधी सदस्य جوडा.');
+    return;
+  }
+  const opts = appState.members.map(m => `<option value="${m.id}">${escapeHtml(m.name)} (${escapeHtml(m.role)})</option>`).join('');
+  document.getElementById('sMemberSelect').innerHTML = opts;
+  
+  updateSavingModalFields(appState.members[0].id);
+  document.getElementById('sMemberSelect').onchange = (e) => updateSavingModalFields(Number(e.target.value));
+
+  openModal('savingModal');
+};
+
+function updateSavingModalFields(id) {
+  const m = appState.members.find(x => x.id === id);
+  if(!m) return;
+  document.getElementById('sJama').value = m.jama || 0;
+  document.getElementById('sInterest').value = m.interest || 0;
+  document.getElementById('sFine').value = m.fine || 0;
+  document.getElementById('sLoan').value = m.loan || 0;
+  document.getElementById('sResolution').value = m.resolution !== '-' ? m.resolution : '';
+}
+
+window.saveFinancialData = function() {
+  if(!requireAdmin()) return;
+  const memberId = Number(document.getElementById('sMemberSelect').value);
+  const m = appState.members.find(x => x.id === memberId);
+  if(!m) return;
+
+  m.jama = Number(document.getElementById('sJama').value) || 0;
+  m.interest = Number(document.getElementById('sInterest').value) || 0;
+  m.fine = Number(document.getElementById('sFine').value) || 0;
+  m.loan = Number(document.getElementById('sLoan').value) || 0;
+  m.resolution = document.getElementById('sResolution').value.trim() || '-';
+
+  saveAndRender();
+  closeModal('savingModal');
+  showToast('हिशोब यशस्वीरित्या सेव्ह झाला.');
+};
+
+/* Meeting & Resolution Management */
+window.openMeetingModal = function() {
+  if(!requireAdmin()) return;
+  document.getElementById('meetDateInput').value = new Date().toISOString().slice(0,10);
+  document.getElementById('meetNoInput').value = '';
+  document.getElementById('meetPresentInput').value = appState.members.length;
+  document.getElementById('meetNotesInput').value = '';
+  openModal('meetingModal');
+};
+
+window.saveMeetingData = function() {
+  if(!requireAdmin()) return;
+  const date = document.getElementById('meetDateInput').value || new Date().toISOString().slice(0,10);
+  const resNo = document.getElementById('meetNoInput').value.trim() || 'ठराव';
+  const present = Number(document.getElementById('meetPresentInput').value) || 0;
+  const notes = document.getElementById('meetNotesInput').value.trim();
+
+  if(!notes) {
+    showToast('ठरावाचा तपशील लिहा.');
+    return;
+  }
+
+  appState.meetings.unshift({ id: Date.now(), date, resNo, present, notes });
+  saveAndRender();
+  closeModal('meetingModal');
+  showToast('ठराव नोंदवला.');
+};
+
+window.deleteMeeting = function(id) {
+  if(!requireAdmin()) return;
+  if(confirm('हा ठराव काढायचा का?')) {
+    appState.meetings = appState.meetings.filter(m => m.id !== id);
+    saveAndRender();
+    showToast('ठराव हटवला.');
+  }
+};
+
+/* Backup & Restore */
+window.exportJSONBackup = function() {
+  if(!requireAdmin()) return;
+  const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(appState, null, 2));
+  const dl = document.createElement('a');
+  dl.setAttribute("href", dataStr);
+  dl.setAttribute("download", "jai_kisan_backup_" + new Date().toISOString().slice(0,10) + ".json");
+  document.body.appendChild(dl);
+  dl.click();
+  dl.remove();
+  showToast('बॅकअप डाउनलोड झाला.');
+};
+
+window.importJSONBackup = function(event) {
+  if(!requireAdmin()) return;
+  const file = event.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const data = JSON.parse(e.target.result);
+      if(!Array.isArray(data.members)) throw new Error();
+      if(confirm('सध्याचा डेटा रिप्लेस करून बॅकअप आणायचा?')) {
+        appState = data;
+        saveAndRender();
+        showToast('बॅकअप रिस्टोर झाला.');
+      }
+    } catch(err) {
+      showToast('अवैध बॅकअप फाईल!');
+    }
+    event.target.value = '';
+  };
+  reader.readAsText(file);
+};
+
+window.openClearModal = function() {
+  if(!requireAdmin()) return;
+  openModal('clearModal');
+};
+
+window.confirmClearData = function() {
+  if(!requireAdmin()) return;
+  appState = {
+    pin: appState.pin,
+    members: [],
+    meetings: []
+  };
+  saveAndRender();
+  closeModal('clearModal');
+  showToast('डेटा पुसला गेला.');
+};
+
+/* Render All Views */
+function renderAll() {
+  const totals = calculateTotals();
+  document.getElementById('statBalance').textContent = formatMoney(totals.netBalance);
+  document.getElementById('statMemberCount').textContent = appState.members.length;
+  document.getElementById('statSavings').textContent = formatMoney(totals.totalSavings);
+  document.getElementById('statLoans').textContent = formatMoney(totals.activeLoans);
+  document.getElementById('statInterest').textContent = formatMoney(totals.totalInterest);
+  document.getElementById('statFine').textContent = formatMoney(totals.totalFine);
+
+  renderMemberList('dashboardMemberList');
+  renderMemberList('membersContainer');
+  renderMeetings();
+}
+
+function renderMemberList(containerId) {
+  const container = document.getElementById(containerId);
+  if(!container) return;
+  
+  const query = containerId === 'membersContainer' ? (document.getElementById('memberSearch').value || '').toLowerCase() : '';
+  const filtered = appState.members.filter(m => m.name.toLowerCase().includes(query) || (m.phone && m.phone.includes(query)));
+
+  if(filtered.length === 0) {
+    container.innerHTML = `<div class="empty-state">कोणताही सदस्य सापडला नाही.</div>`;
+    return;
+  }
+
+  container.innerHTML = filtered.map(m => `
+    <div class="card-item">
+      <div class="card-top">
+        <div>
+          <div class="card-title">${escapeHtml(m.name)} <span class="badge green">${escapeHtml(m.role)}</span></div>
+          <div class="card-subtitle">📞 ${escapeHtml(m.phone || '-')}</div>
+        </div>
+        <div style="text-align:right">
+          <a href="tel:${escapeHtml(m.phone)}" class="btn light" style="padding:4px 8px;font-size:10px">📞 कॉल</a>
+        </div>
+      </div>
+      <div class="fin-box">
+        <div class="fin-item"><span>एकूण जमा:</span> <strong>${formatMoney(m.jama)}</strong></div>
+        <div class="fin-item"><span>जमा व्याज:</span> <strong>${formatMoney(m.interest)}</strong></div>
+        <div class="fin-item"><span>जمان दंड:</span> <strong style="color:var(--red)">${formatMoney(m.fine)}</strong></div>
+        <div class="fin-item"><span>सक्रिय कर्ज:</span> <strong style="color:var(--orange)">${formatMoney(m.loan)}</strong></div>
+        <div class="fin-item" style="grid-column: span 2;border-top:1px solid var(--line);padding-top:4px;margin-top:2px">
+          <span>ठराव:</span> <span>${escapeHtml(m.resolution)}</span>
+        </div>
+      </div>
+      <div class="tools admin-only">
+        <button class="btn light" onclick="openMemberModal(${m.id})">✏️ सदस्य बदला</button>
+        <button class="btn red" onclick="deleteMember(${m.id})">🗑️ हटवा</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderMeetings() {
+  const container = document.getElementById('meetingsContainer');
+  if(!container) return;
+  if(appState.meetings.length === 0) {
+    container.innerHTML = `<div class="empty-state">कोणतीही बैठक किंवा ठराव नोंदवलेला नाही.</div>`;
+    return;
+  }
+
+  container.innerHTML = appState.meetings.map(m => `
+    <div class="card-item">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">
+        <div>
+          <div style="font-weight:800;font-size:13px;color:var(--green-dark)"><i class="fas fa-calendar-alt"></i> ${escapeHtml(m.date)} — <span class="badge blue">${escapeHtml(m.resNo)}</span></div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px">उपस्थित सदस्य: <b>${m.present}</b></div>
+        </div>
+        <button class="btn red admin-only" style="padding:3px 6px;font-size:10px" onclick="deleteMeeting(${m.id})">हटवा</button>
+      </div>
+      <div style="font-size:12px;color:var(--ink);background:var(--bg);padding:8px;border-radius:6px;white-space:pre-wrap;line-height:1.4">${escapeHtml(m.notes)}</div>
+    </div>
+  `).join('');
+}
+
+// Initial Render
+renderAll();
+updateAdminUI();
+</script>
+</body>
+</html>
